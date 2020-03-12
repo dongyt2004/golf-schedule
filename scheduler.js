@@ -22,7 +22,7 @@ scheduler.getEvent({
         plugin: 'urlplug',
         params: {
             method: 'get',
-            url: 'http://' + process.env.SCHEDULED_SERVICE_ID + '/dump_task',
+            url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/dump_task',
             success_match: '1',
             error_match: '0'
         },
@@ -58,7 +58,7 @@ db.exec("select * from plan", [], function (plans) {
                     plugin: 'urlplug',
                     params: {
                         method: 'post',
-                        url: 'http://' + process.env.SCHEDULED_SERVICE_ID + '/irrigate/' + plan.id + '/' + plan.involved_nozzle + '/' + plan.how_long,
+                        url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/irrigate/' + plan.id + '/' + plan.involved_nozzle + '/' + plan.how_long,
                         success_match: '1',
                         error_match: '0'
                     },
