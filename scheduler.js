@@ -1,6 +1,7 @@
 require('dotenv').config({ path: './app.env' });
 process.env.TZ = "Asia/Shanghai";
 const db = require('./db');
+const moment = require("moment");
 const getFutureTiming = require('cronicle-client').getFutureTiming;
 const CronicleClient = require('cronicle-client').CronicleClient;
 const scheduler = new CronicleClient({
@@ -76,3 +77,18 @@ db.exec("select * from plan", [], function (plans) {
         });
     });
 });
+// 每分钟调度一次，查看分控箱是否正常
+setInterval(function() {
+    db.exec("select id,last_recv_time from controlbox", [], function (controlboxes) {
+        for(var i=0; i<controlboxes.length; i++) {
+            if (controlboxes[i].last_recv_time !== null) {
+                var diff = moment().diff(moment(controlboxes[i].last_recv_time), 'minute');
+                if (diff >= 5) {
+                    db.exec("update controlbox set use_state=0 where id=?", [controlboxes[i].id]);
+                } else {
+                    db.exec("update controlbox set use_state=1 where id=?", [controlboxes[i].id]);
+                }
+            }
+        }
+    });
+}, 60000);
