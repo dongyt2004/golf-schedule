@@ -42,11 +42,12 @@ scheduler.getEvent({
     });
 });
 // 向Cronicle添加要调度的洒水计划
-db.exec("select * from plan", [], function (plans) {
+db.exec("select * from plan where start_time>=?", [moment().format("YYYY-MM-DD HH:mm:ss")], function (plans) {
     plans.forEach(function (plan, index, arr) {
         scheduler.getEvent({
             title: "" + plan.id
         }).catch(function() {  // 没有这个job，则创建
+            var schedule_time = moment(plan.start_time).subtract(10, 'seconds');
             scheduler.createEvent({
                 title: "" + plan.id,
                 catch_up: 1,
@@ -63,10 +64,10 @@ db.exec("select * from plan", [], function (plans) {
                 },
                 retries: 3,
                 retry_delay: 30,
-                timing: getFutureTiming(plan.start_time),
+                timing: getFutureTiming(schedule_time),
                 timezone: 'Asia/Shanghai'
             }).then(function() {
-                console.log("启动时向Cronicle添加了洒水计划%s，调度时间%s", plan.id, plan.start_time);
+                console.log("启动时向Cronicle添加了洒水计划%s，调度时间%s", plan.id, schedule_time.format("YYYY-MM-DD HH:mm:ss"));
             }).catch(function(err) {
                 console.log(err.code + ":" + err.message);
                 process.exit();
