@@ -9,12 +9,12 @@ const scheduler = new CronicleClient({
     apiKey: process.env.CRONICLE_API_KEY
 });
 /** ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- **/
-// 向Cronicle添加定时转储2天前的task
+// 向Cronicle添加定时转储2天前的job
 scheduler.getEvent({
-    title: 'dump_task'
+    title: 'dump_job'
 }).catch(function() {  // 没有这个job，则创建
     scheduler.createEvent({
-        title: 'dump_task',
+        title: 'dump_job',
         catch_up: 1,
         enabled: 1,
         category: 'general',
@@ -23,7 +23,7 @@ scheduler.getEvent({
         plugin: 'urlplug',
         params: {
             method: 'get',
-            url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/dump_task',
+            url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/dump_job',
             success_match: '1',
             error_match: '0'
         },
@@ -35,7 +35,7 @@ scheduler.getEvent({
         },
         timezone: 'Asia/Shanghai'
     }).then(function() {
-        console.log('向Cronicle添加了转储task的任务');
+        console.log('启动时向Cronicle添加转储job的事件');
     }).catch(function(err) {
         console.log(err.code + ":" + err.message);
         process.exit();
@@ -45,11 +45,10 @@ scheduler.getEvent({
 db.exec("select * from plan where start_time>=?", [moment().format("YYYY-MM-DD HH:mm:ss")], function (plans) {
     plans.forEach(function (plan, index, arr) {
         scheduler.getEvent({
-            title: "" + plan.id
+            title: "plan" + plan.id
         }).catch(function() {  // 没有这个job，则创建
-            var schedule_time = moment(plan.start_time).subtract(10, 'seconds');
             scheduler.createEvent({
-                title: "" + plan.id,
+                title: "plan" + plan.id,
                 catch_up: 1,
                 enabled: 1,
                 category: 'general',
@@ -58,16 +57,16 @@ db.exec("select * from plan where start_time>=?", [moment().format("YYYY-MM-DD H
                 plugin: 'urlplug',
                 params: {
                     method: 'post',
-                    url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/irrigate/' + plan.id,
+                    url: 'http://' + process.env.SCHEDULED_SERVICE_ID + ":" + process.env.SCHEDULED_SERVICE_PORT + '/preprocess/' + plan.id,
                     success_match: '1',
                     error_match: '0'
                 },
                 retries: 3,
                 retry_delay: 30,
-                timing: getFutureTiming(schedule_time),
+                timing: getFutureTiming(moment(plan.start_time).subtract(10, 'seconds')),
                 timezone: 'Asia/Shanghai'
             }).then(function() {
-                console.log("启动时向Cronicle添加了洒水计划%s，调度时间%s", plan.id, schedule_time.format("YYYY-MM-DD HH:mm:ss"));
+                console.log("启动时向Cronicle添加洒水计划%s，调度时间%s", plan.id, moment(plan.start_time).format("YYYY-MM-DD HH:mm:ss"));
             }).catch(function(err) {
                 console.log(err.code + ":" + err.message);
                 process.exit();
